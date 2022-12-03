@@ -1,0 +1,256 @@
+library(shiny)
+library(shinythemes)
+library(data.table)
+library(ggplot2)
+library(shinydashboard)
+library(readxl)
+library(dplyr)
+library(DT)
+library(stringr)
+df <- read.csv("~/Desktop/final112.csv")
+options(DT.options = list(pageLength = 5))
+not_sel <- "Not Selected"
+about_page <- tabPanel(
+  title = "About",
+  titlePanel(h1("About")),
+  h4("This is a Scientific Computation and Programming Class Project.", style = "color:red"),
+  br(),
+  "The data on the nutritional food content in this program were taken 
+  from", url <- a("Publix.com", href="https://www.publix.com/"), "and",  url <- a("Instacart.com.", href="https://www.instacart.com/"), "Pricing data is only taken 
+  from the Instacart application. Please contact for more information.",
+  br(),
+  br(),
+  em("2022 December"),
+  br(),
+  code("Dilara Vefa AYYILDIZ"),
+  br(),
+  code("dayyildiz4771@floridapoly.edu"),
+  br(),
+  code("Florida Polytechnic University / M.S. in Data Science"),
+  br(),
+  br(),
+  br(),
+  br(),
+  img(src = "floridapoly.png", height = 240/2, width = 550/2),
+  img(src = "publix.png", height = 240/2, width = 550/2),
+  img(src = "instacart.png", height = 240/2, width = 550/2)
+)
+statistics_page <- tabPanel(
+  title = "FACTS",
+  titlePanel(h1("FACTS")),
+  h5("Some research and important information that might interest you.", style = "color:red"),
+  body <- dashboardBody(
+    fluidRow(
+      box(
+        title =  url <- a("Common Allergies", href="https://www.foodallergy.org/living-food-allergies/food-allergy-essentials/common-allergens"), 
+        width = 6, status = "primary",img(src = "common.png", height = 300/2, width = 550/2),
+        br(),"Common Allergies according to The Fellows ",br(),"Award for Research Excellence (FARE)",
+      ),
+    ),
+    fluidRow(
+      column(width = 6,
+             box(
+               title = url <- a("Food Intolerance Versus Food Allergy", href="https://www.aaaai.org/tools-for-the-public/conditions-library/allergies/food-intolerance"), width = 6, solidHeader = TRUE, status = "primary",
+               img(src = "into.png", height = 300/2, width = 550/2),
+               "Food Intolerance Versus Food Allergy" ,br(),"according to American Academy of Allergy," ,br(),"Asthma & Immunology "
+             ),
+      )
+    ),
+    fluidRow(
+      column(width = 6,
+             box(
+               title = url <- a("The 8 Most Common Food Intolerances", href="https://www.healthline.com/nutrition/common-food-intolerances"), width = 6, solidHeader = TRUE, status = "primary",
+               img(src = "int.png", height = 300/2, width = 550/2),
+               "The 8 Most Common Food Intolerances",  br(), "By Jillian Kubala, MS, RD  "
+             ),
+             fluidRow(
+               box(
+                 title = url <- a("Added Sugars", href="https://www.heart.org/en/healthy-living/healthy-eating/eat-smart/sugar/added-sugars"), width = 8, solidHeader = TRUE, status = "primary",
+                 img(src = "add.png", height = 300/2, width = 550/2),
+                 "The 8 Most Common Food Intolerances By Jillian Kubala, MS, RD  "
+               )
+             )
+      )
+    )
+  )
+)
+dashboardBody(skin = "black")
+References_page <- tabPanel(
+  title = "References",
+  titlePanel(h1("References")),
+  h4("References about data and code useful link I LOVE MYSELF I AM A PRINCESS", style = "color:red"),
+)
+main_page <- tabPanel(
+  title = "Filtering",
+  titlePanel("Filtering"),
+  sidebarLayout(
+    sidebarPanel(
+      title = "Inputs",
+      sliderInput("Price", label = h3("Price ($)"), min = min(df$Price), 
+                  max = max(df$Price), value = 9.97),
+      sliderInput("Calories", label = h3("Calories  (cal)"), min = min(df$Calories), 
+                  max = max(df$Calories), value = c(10,900)),
+      sliderInput("Protein", label = h3("Protein (gr.)"), min = min(df$Protein), 
+                  max = max(df$Protein), value = c(0,38)),
+      selectInput("type_diet", "Type o a diet", choices = c( "None","Vegan", "Vegetarian" ,"Pescatarian")),
+      checkboxGroupInput("big_9", label = h3("Common Allergies"), 
+                         choices = c("Milk" , "Egg" , "Peanut" , "Soy" , "Wheat", "Tree Nut" , "Shellfish" , "Fish"  , "Sesame"),
+                         selected = 0),
+      
+      radioButtons("radio", label = h5("Preference"),
+                   choices = list("Does not matter" = 1, "Daily" = 2, "Non-Daily" = 3), 
+                   selected = 1),
+      radioButtons("radio1", label = h5("To Eat or To Drink"),
+                   choices = list("Both" = 1, "Eat" = 2, "Drink" = 3), 
+                   selected = 1),
+      hr(),
+      fluidRow(column(3, verbatimTextOutput("value"))),
+      textInput("searchme", placeholder = "exp:corn syrup", label = "AVOIDINGS"), 
+      br(),
+    ),
+    mainPanel(
+      tabsetPanel(
+        tabPanel(
+          title = "List",
+          DT::dataTableOutput("table")
+        ),
+        tabPanel(
+          title = "Ingredients",
+          DT::dataTableOutput("mytable1"),
+        )
+      )
+    )
+  )
+)
+# We'll save it in a variable `ui` so that we can preview it in the console
+ui <- navbarPage(
+  title = "Grocery Analyser",
+  theme = shinytheme('simplex'),
+  #theme = shinytheme('sandstone'),
+  main_page,
+  statistics_page,
+  about_page,
+  References_page,
+)
+server <- function(input, output){
+  output$table  <- renderDataTable({
+    df<-df %>% filter(df$Price<input$Price)
+    df<-df %>% filter(df$Calories >= input$Calories[1] & df$Calories <= input$Calories[2])
+    df<-df %>% filter(df$Protein >= input$Protein[1] & df$Protein <= input$Protein[2])
+    if(input$type_diet == "Vegan") {
+      df <- df %>% filter(grepl("Vegan", df$Type))
+    }
+    if(input$type_diet == "Vegetarian") {
+      #here I am filtering based on v, because otherwise it will aslo see VE as a pattern for V
+      # be careful, this means that if you ever have a product which has Only V, and not V, it will not filter it
+      #maybe look into a better solution here 
+      df <- df %>% filter(grepl("Vegetarian", df$Type))
+    }
+    if(input$type_diet == "Pescatarian") {
+      df <- df %>% filter(grepl("Pescatarian", df$Type))
+    }
+    #here since the name of the filter for the allergens matches the name in the table I can filter directly
+    #also ignored case sensitive Ex: Milk is same with milk or MiLK ...
+    #df <- df %>% filter(!grepl(input$big_9, df$Allergens, ignore.case = TRUE))
+
+    #new implementation for alergens
+
+      if(is.null(input$big_9)) {
+        df }
+        else { 
+         for(i in input$big_9) {
+          df <- df %>% filter(!grepl(i, df$Allergens, ignore.case = TRUE))
+        }
+      }
+    
+    if(input$radio == 1){
+      df 
+    }
+    if(input$radio == 2) {
+      df <- df %>% filter(grepl("T", df$Fresh))
+    }
+    if(input$radio == 3) {
+      df <- df %>% filter(grepl("F", df$Fresh))
+    }
+    if(input$radio1 == 1){
+      df 
+    }
+    if(input$radio1 == 2) {
+      df <- df %>% filter(grepl("E", df$Drink.Eat))
+    }
+    if(input$radio1 == 3) {
+      df <- df %>% filter(grepl("D", df$Drink.Eat))
+    }
+    
+    #checking if the input is empty first so it won't get triggered in an infinite loop
+    if(nchar(input$searchme)) {
+      df <- df %>% filter(!grepl(input$searchme, df$Ingredients, ignore.case = TRUE))
+    }
+    if(nchar(input$searchme)) {
+      df <- df %>% filter(!grepl(input$searchme, df$Product.Name, ignore.case = TRUE))
+    }
+    df 
+    select(df,Product.Name,Allergens,Calories, Spesific ,Price)
+  
+  })
+
+  output$mytable1  <- renderDataTable({
+    df<-df %>% filter(df$Price<input$Price)
+    df<-df %>% filter(df$Calories >= input$Calories[1] & df$Calories <= input$Calories[2])
+    df<-df %>% filter(df$Protein >= input$Protein[1] & df$Protein <= input$Protein[2])
+    if(input$type_diet == "Vegan") {
+      df <- df %>% filter(grepl("Vegan", df$Type))
+    }
+    if(input$type_diet == "Vegetarian") {
+      #here I am filtering based on v, because otherwise it will aslo see VE as a pattern for V
+      # be careful, this means that if you ever have a product which has Only V, and not V, it will not filter it
+      #maybe look into a better solution here 
+      df <- df %>% filter(grepl("Vegetarian", df$Type))
+    }
+    if(input$type_diet == "Pescatarian") {
+      df <- df %>% filter(grepl("Pescatarian", df$Type))
+    }
+    #here since the name of the filter for the allergens matches the name in the table I can filter directly
+    #also ignored case sensitive Ex: Milk is same with milk or MiLK ...
+    #df <- df %>% filter(!grepl(input$big_9, df$Allergens, ignore.case = TRUE))
+    
+    #new implementation for alergens
+    
+    if(is.null(input$big_9)) {
+      df }
+    else { 
+      for(i in input$big_9) {
+        df <- df %>% filter(!grepl(i, df$Allergens, ignore.case = TRUE))
+      }
+    }
+    
+    if(input$radio == 1){
+      df 
+    }
+    if(input$radio == 2) {
+      df <- df %>% filter(grepl("T", df$Fresh))
+    }
+    if(input$radio == 3) {
+      df <- df %>% filter(grepl("F", df$Fresh))
+    }
+    if(input$radio1 == 1){
+      df 
+    }
+    if(input$radio1 == 2) {
+      df <- df %>% filter(grepl("E", df$Drink.Eat))
+    }
+    if(input$radio1 == 3) {
+      df <- df %>% filter(grepl("D", df$Drink.Eat))
+    }
+    
+    #checking if the input is empty first so it won't get triggered in an infinite loop
+    if(nchar(input$searchme)) {
+      df <- df %>% filter(!grepl(input$searchme, df$Ingredients, ignore.case = TRUE))
+    }
+    if(nchar(input$searchme)) {
+      df <- df %>% filter(!grepl(input$searchme, df$Product.Name, ignore.case = TRUE))
+    }
+    df
+    })
+   }
+shinyApp(ui = ui, server = server)
